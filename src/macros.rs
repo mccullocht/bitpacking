@@ -26,6 +26,10 @@ macro_rules! pack_unpack_with_bits {
                 assert_eq!(input_arr.len(), BLOCK_LEN, "Input block too small {}, (expected {})", input_arr.len(), BLOCK_LEN);
                 assert!(output_arr.len() >= NUM_BYTES_PER_BLOCK, "Output array too small (numbits {}). {} <= {}", NUM_BITS, output_arr.len(), NUM_BYTES_PER_BLOCK);
 
+                if NUM_BITS == 1 {
+                    return pack1(input_arr, output_arr, delta_computer);
+                }
+
                 let input_ptr = input_arr.as_ptr() as *const DataType;
                 let mut output_ptr = output_arr.as_mut_ptr() as *mut DataType;
                 let mut out_register: DataType = delta_computer.transform(load_unaligned(input_ptr));
@@ -64,6 +68,83 @@ macro_rules! pack_unpack_with_bits {
                     op_or(out_register, in_register)
                 };
                 store_unaligned(output_ptr, out_register);
+
+                NUM_BYTES_PER_BLOCK
+            }
+
+            #[$cpufeature]
+            #[inline]
+            pub(crate) unsafe fn pack1<TDeltaComputer: Transformer>(input_arr: &[u32], output_arr: &mut [u8], mut delta_computer: TDeltaComputer) -> usize {
+                assert_eq!(input_arr.len(), BLOCK_LEN, "Input block too small {}, (expected {})", input_arr.len(), BLOCK_LEN);
+                assert!(output_arr.len() >= NUM_BYTES_PER_BLOCK, "Output array too small (numbits {}). {} <= {}", NUM_BITS, output_arr.len(), NUM_BYTES_PER_BLOCK);
+
+                let input_ptr = input_arr.as_ptr() as *const DataType;
+                let output_ptr = output_arr.as_mut_ptr() as *mut DataType;
+                let mut r0: DataType = delta_computer.transform(load_unaligned(input_ptr));
+                r0 = left_shift_insert_32::<1>(r0, delta_computer.transform(load_unaligned(input_ptr.add(1))));
+
+                let mut r2 = delta_computer.transform(load_unaligned(input_ptr.add(2)));
+                r2 = left_shift_insert_32::<1>(r2, delta_computer.transform(load_unaligned(input_ptr.add(3))));
+                r0 = left_shift_insert_32::<2>(r0, r2);
+
+                let mut r4 = delta_computer.transform(load_unaligned(input_ptr.add(4)));
+                r4 = left_shift_insert_32::<1>(r4, delta_computer.transform(load_unaligned(input_ptr.add(5))));
+
+                let mut r6 = delta_computer.transform(load_unaligned(input_ptr.add(6)));
+                r6 = left_shift_insert_32::<1>(r6, delta_computer.transform(load_unaligned(input_ptr.add(7))));
+                r4 = left_shift_insert_32::<2>(r4, r6);
+                r0 = left_shift_insert_32::<4>(r0, r4);
+
+                let mut r8 = delta_computer.transform(load_unaligned(input_ptr.add(8)));
+                r8 = left_shift_insert_32::<1>(r8, delta_computer.transform(load_unaligned(input_ptr.add(9))));
+
+                let mut r10 = delta_computer.transform(load_unaligned(input_ptr.add(10)));
+                r10 = left_shift_insert_32::<1>(r10, delta_computer.transform(load_unaligned(input_ptr.add(11))));
+                r8 = left_shift_insert_32::<2>(r8, r10);
+
+                let mut r12 = delta_computer.transform(load_unaligned(input_ptr.add(12)));
+                r12 = left_shift_insert_32::<1>(r12, delta_computer.transform(load_unaligned(input_ptr.add(13))));
+
+                let mut r14 = delta_computer.transform(load_unaligned(input_ptr.add(14)));
+                r14 = left_shift_insert_32::<1>(r14, delta_computer.transform(load_unaligned(input_ptr.add(15))));
+                r12 = left_shift_insert_32::<2>(r12, r14);
+                r8 = left_shift_insert_32::<4>(r8, r12);
+                r0 = left_shift_insert_32::<8>(r0, r8);
+
+                let mut r16 = delta_computer.transform(load_unaligned(input_ptr.add(16)));
+                r16 = left_shift_insert_32::<1>(r16, delta_computer.transform(load_unaligned(input_ptr.add(17))));
+
+                let mut r18 = delta_computer.transform(load_unaligned(input_ptr.add(18)));
+                r18 = left_shift_insert_32::<1>(r18, delta_computer.transform(load_unaligned(input_ptr.add(19))));
+                r16 = left_shift_insert_32::<2>(r16, r18);
+
+                let mut r20 = delta_computer.transform(load_unaligned(input_ptr.add(20)));
+                r20 = left_shift_insert_32::<1>(r20, delta_computer.transform(load_unaligned(input_ptr.add(21))));
+
+                let mut r22 = delta_computer.transform(load_unaligned(input_ptr.add(22)));
+                r22 = left_shift_insert_32::<1>(r22, delta_computer.transform(load_unaligned(input_ptr.add(23))));
+                r20 = left_shift_insert_32::<2>(r20, r22);
+                r16 = left_shift_insert_32::<4>(r16, r20);
+
+                let mut r24 = delta_computer.transform(load_unaligned(input_ptr.add(24)));
+                r24 = left_shift_insert_32::<1>(r24, delta_computer.transform(load_unaligned(input_ptr.add(25))));
+
+                let mut r26 = delta_computer.transform(load_unaligned(input_ptr.add(26)));
+                r26 = left_shift_insert_32::<1>(r26, delta_computer.transform(load_unaligned(input_ptr.add(27))));
+                r24 = left_shift_insert_32::<2>(r24, r26);
+
+                let mut r28 = delta_computer.transform(load_unaligned(input_ptr.add(28)));
+                r28 = left_shift_insert_32::<1>(r28, delta_computer.transform(load_unaligned(input_ptr.add(29))));
+
+                let mut r30 = delta_computer.transform(load_unaligned(input_ptr.add(30)));
+                r30 = left_shift_insert_32::<1>(r30, delta_computer.transform(load_unaligned(input_ptr.add(31))));
+                r28 = left_shift_insert_32::<2>(r28, r30);
+                r24 = left_shift_insert_32::<4>(r24, r28);
+                r16 = left_shift_insert_32::<8>(r16, r24);
+
+                r0 = left_shift_insert_32::<16>(r0, r16);
+
+                store_unaligned(output_ptr, r0);
 
                 NUM_BYTES_PER_BLOCK
             }
