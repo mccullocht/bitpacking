@@ -27,11 +27,6 @@ mod sse3 {
         _mm_sub_epi32,
     };
 
-    #[inline]
-    unsafe fn left_shift_insert_32<const N: i32>(base: DataType, to_shift: DataType) -> DataType {
-        op_or(base, left_shift_32::<N>(to_shift))
-    }
-
     #[allow(non_snake_case)]
     #[inline]
     unsafe fn or_collapse_to_u32(accumulator: DataType) -> u32 {
@@ -88,18 +83,8 @@ mod neon {
     use super::scalar::store_unaligned;
     use super::scalar::DataType;
     use std::arch::aarch64::{
-        vaddq_u32, vdupq_n_u32, vextq_u32, vld1q_u32, vmaxvq_u32, vsliq_n_u32, vst1q_u32, vsubq_u32,
+        vaddq_u32, vdupq_n_u32, vextq_u32, vld1q_u32, vmaxvq_u32, vst1q_u32, vsubq_u32,
     };
-
-    #[target_feature(enable = "neon")]
-    #[inline]
-    unsafe fn left_shift_insert_32<const N: i32>(base: DataType, to_shift: DataType) -> DataType {
-        let b = vld1q_u32(base.as_ptr());
-        let s = vld1q_u32(to_shift.as_ptr());
-        let mut r = set1(0);
-        vst1q_u32(r.as_mut_ptr(), vsliq_n_u32::<N>(b, s));
-        r
-    }
 
     #[target_feature(enable = "neon")]
     #[allow(non_snake_case)]
@@ -162,18 +147,6 @@ mod scalar {
 
     pub(crate) fn left_shift_32<const N: i32>(el: DataType) -> DataType {
         [el[0] << N, el[1] << N, el[2] << N, el[3] << N]
-    }
-
-    pub(crate) fn left_shift_insert_32<const N: i32>(
-        base: DataType,
-        to_shift: DataType,
-    ) -> DataType {
-        [
-            base[0] | (to_shift[0] << N),
-            base[1] | (to_shift[1] << N),
-            base[2] | (to_shift[2] << N),
-            base[3] | (to_shift[3] << N),
-        ]
     }
 
     pub(crate) fn op_or(left: DataType, right: DataType) -> DataType {
