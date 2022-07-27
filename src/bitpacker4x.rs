@@ -78,22 +78,12 @@ mod neon {
     use super::scalar::load_unaligned;
     use super::scalar::op_and;
     use super::scalar::op_or;
+    use super::scalar::or_collapse_to_u32;
     use super::scalar::right_shift_32;
     use super::scalar::set1;
     use super::scalar::store_unaligned;
     use super::scalar::DataType;
-    use std::arch::aarch64::{
-        vaddq_u32, vdupq_n_u32, vextq_u32, vld1q_u32, vmaxvq_u32, vst1q_u32, vsubq_u32,
-    };
-
-    #[target_feature(enable = "neon")]
-    #[allow(non_snake_case)]
-    #[inline]
-    unsafe fn or_collapse_to_u32(accumulator: DataType) -> u32 {
-        // NB: this function computes the max instead of ORing the vector components together.
-        // In terms of overall behavior this is equivalent since the next instruction will be clz.
-        vmaxvq_u32(vld1q_u32(accumulator.as_ptr()))
-    }
+    use std::arch::aarch64::{vaddq_u32, vdupq_n_u32, vextq_u32, vld1q_u32, vst1q_u32, vsubq_u32};
 
     #[target_feature(enable = "neon")]
     unsafe fn compute_delta(curr: DataType, prev: DataType) -> DataType {
@@ -175,7 +165,7 @@ mod scalar {
         ptr::write_unaligned(addr, data);
     }
 
-    fn or_collapse_to_u32(accumulator: DataType) -> u32 {
+    pub(crate) fn or_collapse_to_u32(accumulator: DataType) -> u32 {
         (accumulator[0] | accumulator[1]) | (accumulator[2] | accumulator[3])
     }
 
